@@ -20,23 +20,13 @@ public class UserInfo implements UserDetails {
     private String username; // Changed from 'name' to 'email' for clarity
     private String password;
     private String email;
-    private List<SimpleGrantedAuthority> authorities;
+    private Collection<? extends GrantedAuthority> authorities;
 
-    public UserInfo(User userInfo) {
-        this.username = userInfo.getUsername(); // Use email as username
-        this.password = userInfo.getPassword();
-        this.authorities = userInfo.getRoles()
-                .stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName()))
-                .toList();
+    public UserInfo(User user) {
+        this.username = user.getUsername();
+        this.password = user.getPassword();
+        this.authorities = user.getRoles();
     }
-
-    public UserInfo(String username, String password, List<SimpleGrantedAuthority> authorities) {
-        this.username = username;
-        this.password = password;
-        this.authorities = authorities;
-    }
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
@@ -44,7 +34,7 @@ public class UserInfo implements UserDetails {
 
     @Override
     public @Nullable String getPassword() {
-        return "";
+        return password;
     }
 
     @Override

@@ -48,9 +48,9 @@ public class JwtService {
                 .compact();
     }
 
-    public RefreshToken createRefreshToken(String userName) {
+    public RefreshToken createRefreshToken(String email) {
         RefreshToken refreshToken = new RefreshToken();
-        User user = userRepository.findByUsername(userName).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("User not found"));
         refreshToken.setUser(user);
         refreshToken.setExpiryDate(
                 LocalDateTime.ofInstant(

@@ -65,7 +65,7 @@ public class SecurityController {
         User user1 = userRepository.findByUsername(user.getUsername())
                 .orElseThrow(()->new RuntimeException("User not matched with Role"));
 
-        String accessToken = jwtService.generateToken(user1.getEmail());
+        String accessToken = jwtService.generateToken(user1.getUsername());
         RefreshToken refreshToken = jwtService.createRefreshToken(user1.getEmail());
         LoginResponse resp = new LoginResponse();
         resp.setToken(accessToken);
