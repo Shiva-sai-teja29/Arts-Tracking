@@ -49,7 +49,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         RefreshToken refreshToken;
 
-        Optional<UserInfo> existingUser = userRepository.findByEmail(email);
+        Optional<User> existingUser = userRepository.findByEmail(email);
             if (existingUser.isEmpty()){
                 User user1 = new User();
                 user1.setEmail(email);
