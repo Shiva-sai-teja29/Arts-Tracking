@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -28,11 +29,9 @@ public class User extends BaseEntity {
     private String googleId;
 
     @Column(nullable = true)
-    private String firstName;
+    private String fullName;
 
-    private String lastName;
-
-    private String phoneNumber;
+    private String nickName;
 
     private String profileImage;
 
@@ -58,4 +57,25 @@ public class User extends BaseEntity {
     )
     @Builder.Default
     private Set<Role> roles = new HashSet<>();
+
+    @Column(unique = true, length = 15)
+    private String mobileNumber;
+
+    @Column
+    private Boolean mobileVerified = false;
+
+    @ManyToMany(mappedBy = "coaches")
+    private Set<Academy> academies;
+
+    @ManyToMany(mappedBy = "coaches")
+    private Set<Branch> branches;
+
+    @OneToMany(mappedBy="student")
+    private List<Enrollment> studentEnrollments;
+
+    @OneToMany(mappedBy="coach")
+    private List<Enrollment> coachEnrollments;
+
+    @OneToMany(mappedBy="headCoach")
+    private List<Academy> headCoachAcademies;
 }

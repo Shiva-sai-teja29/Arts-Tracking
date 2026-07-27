@@ -1,30 +1,28 @@
 package com.arts.Arts.Tracking.Security;
 
 import com.arts.Arts.Tracking.Entity.RefreshToken;
-import com.arts.Arts.Tracking.Entity.Role;
 import com.arts.Arts.Tracking.Entity.User;
 import com.arts.Arts.Tracking.Repo.RefreshTokenRepository;
 import com.arts.Arts.Tracking.Repo.RoleRepository;
 import com.arts.Arts.Tracking.Repo.UserRepository;
 import com.arts.Arts.Tracking.Security.Config.JwtService;
-import com.arts.Arts.Tracking.Security.DTO.LoginRequest;
-import com.arts.Arts.Tracking.Security.DTO.LoginResponse;
-import com.arts.Arts.Tracking.Security.DTO.RefreshTokenRequest;
-import com.arts.Arts.Tracking.Security.DTO.RegisterRequest;
+import com.arts.Arts.Tracking.Security.DTO.*;
+import com.arts.Arts.Tracking.Users.UserDTO.VerifyOtpRequest;
+import com.twilio.rest.api.v2010.account.Message;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -47,21 +45,21 @@ public class SecurityController {
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+    private final SMSService smsService;
+
+    public SecurityController(SMSService smsService) {
+        this.smsService = smsService;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request){
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                )
-        );
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                        request.getUsername(), request.getPassword()));
 
         if (!(authentication.getPrincipal() instanceof UserInfo user)) {
             throw new BadCredentialsException("Invalid authentication");
         }
-
         User user1 = userRepository.findByUsername(user.getUsername())
                 .orElseThrow(()->new RuntimeException("User not matched with Role"));
 
@@ -77,7 +75,6 @@ public class SecurityController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
 
-        System.out.println("REGISTER API CALLED");
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
         }
@@ -104,8 +101,7 @@ public class SecurityController {
 
         RefreshToken refreshToken = jwtService.verifyRefreshToken(request.getRefreshToken());
 
-        String accessToken = jwtService.generateToken(
-                refreshToken.getUser().getEmail());
+        String accessToken = jwtService.generateToken(refreshToken.getUser().getUsername());
 
         LoginResponse response = new LoginResponse();
 
@@ -125,4 +121,67 @@ public class SecurityController {
         return ResponseEntity.ok("Logged Out");
     }
 
+    @PostMapping("/sms/sendOtp")
+    public ResponseEntity<Object> sendOtp(@Valid @RequestBody VerifyOtpRequest dto) throws Exception {
+
+        String otp = smsService.getOtpCode(dto.getMobile());
+        Message twilioMessage = (Message) smsService.sendSms(dto.getMobile(),"Your OTP code is Generated successfully <otp>"+ otp);
+        if (twilioMessage.getStatus().toString().equals("queued")) {
+            return new ResponseEntity<Object>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity<Object>(HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+//
+//    @PostMapping("/sms/verify")
+//    public ResponseEntity<?> verifyOtp(@RequestBody ValidateOtpRequest OTP) {
+//
+//        User user = extractUser();
+//        System.out.println(user.toString());
+//        User user1 = userRepository.findByUsername(user.getUsername()).orElseThrow(()->new RuntimeException("User not Found"));
+//
+//        boolean verified;
+//
+//        try {
+//            verified = smsService.validateOtp(OTP);
+//        }catch (Exception e){
+//            throw new RuntimeException(e);
+//        }
+//
+//        Optional<User> user1 = userRepository.findByUsername(OTP.getUsername());
+//        User user = new User();
+//        if (user1.isEmpty()){
+//
+//            user.setUsername(OTP.getUsername());
+//            user.setCreatedAt(LocalDateTime.now());
+//            user.setUpdatedAt(LocalDateTime.now());
+//            user.setMobileNumber(OTP.getMobile());
+//        } else {
+//            user.setUsername(OTP.getUsername());
+//
+//            user.setUpdatedAt(LocalDateTime.now());
+//            user.setMobileNumber(OTP.getMobile());
+//
+//        }
+//        userRepository.save(user);
+//        String accessToken = jwtService.generateToken(user1.get().getUsername());
+//        RefreshToken refreshToken = jwtService.createRefreshToken(user1.getEmail());
+//        LoginResponse resp = new LoginResponse();
+//        resp.setToken(accessToken);
+//        resp.setExpiryTime("60");
+//        resp.setRefreshToken(refreshToken);
+//        return ResponseEntity.ok(resp);
+//
+//
+//        if (verified) {
+//            return ResponseEntity.ok("OTP Verified Successfully");
+//        } else {
+//            return new ResponseEntity<Object>(HttpStatus.EXPECTATION_FAILED);
+//        }
+//    }
+    public User extractUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        assert auth != null;
+        return (User) auth.getPrincipal();
+    }
 }

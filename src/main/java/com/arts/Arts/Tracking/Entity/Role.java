@@ -2,10 +2,13 @@ package com.arts.Arts.Tracking.Entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.*;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
+
+import java.util.List;
 
 @Entity
 @Table(name = "roles")
@@ -21,6 +24,9 @@ public class Role extends BaseEntity implements GrantedAuthority{
 
     @Column(length = 200)
     private String description;
+
+    @ManyToMany(mappedBy = "roles")
+    private List<User> users;
 
     @Override
     public @Nullable String getAuthority() {
